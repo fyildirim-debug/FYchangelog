@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geliştirici Günlüğü</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <div class="logo-box">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div class="title">
+                    <h1>Changelog</h1>
+                    <p>Geliştirme Geçmişi</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <span id="total-commits" class="stat-badge">Yükleniyor...</span>
+                <a href="/api/changelog" target="_blank" class="api-btn" id="api-btn">
+                    <i class="fas fa-database"></i>
+                    API
+                </a>
+            </div>
+        </header>
+
+        <!-- Changelog Container -->
+        <div id="changelog" class="timeline-section">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

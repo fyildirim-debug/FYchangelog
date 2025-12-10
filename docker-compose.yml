@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  changelog:
+    build: .
+    container_name: github-changelog
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_USERNAME=${GITHUB_USERNAME:-fyildirim-debug}
+      - SHOW_PRIVATE_REPOS=${SHOW_PRIVATE_REPOS:-true}
+      - SHOW_API_BUTTON=${SHOW_API_BUTTON:-true}
+      - DEFAULT_LANG=${DEFAULT_LANG:-TR}
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3001/api/user" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
