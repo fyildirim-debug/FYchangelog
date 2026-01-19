@@ -369,3 +369,34 @@ header {
     align-items: center;
     gap: 4px;
 }
+
+/* Scroll Loading - Infinite Scroll */
+.scroll-loading {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.scroll-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.scroll-loading.no-more::before {
+    display: none;
+}
+
+.scroll-loading.no-more {
+    color: var(--text-muted);
+    opacity: 0.6;
+}

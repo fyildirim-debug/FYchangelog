@@ -4,6 +4,12 @@ let config = {
     defaultLang: 'TR'
 };
 
+// Sayfalama değişkenleri
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+let allDates = {};
+
 const translations = {
     TR: {
         title: 'Geliştirici Günlüğü',
@@ -20,7 +26,9 @@ const translations = {
         daysAgo: 'gün önce',
         hoursAgo: 'saat önce',
         minutesAgo: 'dakika önce',
-        justNow: 'az önce'
+        justNow: 'az önce',
+        loadingMore: 'Daha fazla yükleniyor...',
+        noMoreData: 'Tüm commitler yüklendi'
     },
     EN: {
         title: 'Developer Changelog',
@@ -37,7 +45,9 @@ const translations = {
         daysAgo: 'days ago',
         hoursAgo: 'hours ago',
         minutesAgo: 'minutes ago',
-        justNow: 'just now'
+        justNow: 'just now',
+        loadingMore: 'Loading more...',
+        noMoreData: 'All commits loaded'
     }
 };
 
@@ -120,96 +130,50 @@ async function initApp() {
         // 3. Changelog'u yükle
         loadChangelog();
 
+        // 4. Infinite scroll event listener
+        window.addEventListener('scroll', handleScroll);
+
     } catch (e) {
         console.error("Config yüklenemedi", e);
         loadChangelog(); // Config yüklenemese de varsayılanlarla devam et
     }
 }
 
+// Infinite scroll handler
+function handleScroll() {
+    if (isLoading || !hasMore) return;
+
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const threshold = document.body.offsetHeight - 500;
+
+    if (scrollPosition >= threshold) {
+        loadMoreCommits();
+    }
+}
+
+// İlk yükleme
 async function loadChangelog() {
     const container = document.getElementById('changelog');
+    currentPage = 1;
+    allDates = {};
+    hasMore = true;
 
     try {
-        const res = await fetch('/api/changelog?limit=200');
+        const res = await fetch('/api/changelog?limit=20&page=1');
         const data = await res.json();
 
         document.getElementById('total-commits').textContent = t('totalCommits', data.total);
+        hasMore = data.hasMore;
 
-        const dates = Object.keys(data.grouped).sort((a, b) => new Date(b) - new Date(a));
-
-        if (dates.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 40px;">${t('noCommits')}</p>`;
-            return;
-        }
-
-        let html = '<div class="timeline-line"></div>';
-
-        for (const date of dates) {
-            const commits = data.grouped[date];
-            const dateLabel = formatDate(date);
-
-            html += `
-                <div class="date-group">
-                    <div class="date-header">
-                        <div class="date-dot"></div>
-                        <span class="date-label">${dateLabel}</span>
-                    </div>
-                    
-                    <div class="commits-list">
-            `;
-
-            for (const c of commits) {
-                const color = colors[c.repo.language] || '#94a3b8';
-                const msg = escapeHtml(c.commit.message.split('\n')[0]);
-                const sha = c.sha.substring(0, 7);
-                const author = c.commit.author.name;
-                const avatar = (c.author && c.author.avatar_url) ? c.author.avatar_url : 'https://github.com/ghost.png';
-                const isPrivate = c.repo.private;
-                const repoName = c.repo.name;
-                const commitDate = new Date(c.commit.author.date);
-                const timeAgoStr = timeAgo(commitDate);
-                const repoUrl = c.repo.html_url;
-                const commitUrl = c.html_url;
-
-                html += `
-                    <div class="commit-item">
-                        <div class="commit-card ${isPrivate ? 'private-repo' : ''}">
-                            <div class="card-header">
-                                <div class="commit-message">${msg}</div>
-                                <div class="commit-meta">
-                                    ${isPrivate ?
-                        `<span class="private-badge"><i class="fas fa-lock"></i> ${t('privateBadge')}</span>` :
-                        `<a href="${commitUrl}" target="_blank" class="sha-badge">${sha}</a>`
-                    }
-                                </div>
-                            </div>
-                            
-                            <div class="card-footer">
-                                <div class="repo-info">
-                                    <div class="repo-lang-dot" style="background-color: ${color}"></div>
-                                    <a href="${isPrivate ? '#' : repoUrl}" target="${isPrivate ? '' : '_blank'}" 
-                                       class="repo-name" style="text-decoration:none; color:inherit;">
-                                       ${repoName}
-                                    </a>
-                                </div>
-                                
-                                <div class="author-info">
-                                    <img src="${avatar}" class="author-avatar" alt="${author}">
-                                    <span class="time-ago">${timeAgoStr}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+        // Tarihleri birleştir
+        Object.keys(data.grouped).forEach(date => {
+            if (!allDates[date]) {
+                allDates[date] = [];
             }
+            allDates[date].push(...data.grouped[date]);
+        });
 
-            html += `
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = html;
+        renderChangelog();
 
     } catch (error) {
         console.error('Yükleme hatası:', error);
@@ -222,5 +186,140 @@ async function loadChangelog() {
     }
 }
 
+// Daha fazla commit yükle
+async function loadMoreCommits() {
+    if (isLoading || !hasMore) return;
+
+    isLoading = true;
+    currentPage++;
+
+    // Loading göstergesi ekle
+    const loadingEl = document.getElementById('scroll-loading');
+    if (loadingEl) {
+        loadingEl.style.display = 'block';
+        loadingEl.textContent = t('loadingMore');
+    }
+
+    try {
+        const res = await fetch(`/api/changelog?limit=20&page=${currentPage}`);
+        const data = await res.json();
+
+        hasMore = data.hasMore;
+
+        // Yeni tarihleri birleştir
+        Object.keys(data.grouped).forEach(date => {
+            if (!allDates[date]) {
+                allDates[date] = [];
+            }
+            allDates[date].push(...data.grouped[date]);
+        });
+
+        renderChangelog();
+
+    } catch (error) {
+        console.error('Daha fazla yükleme hatası:', error);
+        currentPage--; // Başarısız olursa sayfa numarasını geri al
+    } finally {
+        isLoading = false;
+        const loadingEl = document.getElementById('scroll-loading');
+        if (loadingEl) {
+            loadingEl.style.display = hasMore ? 'none' : 'block';
+            if (!hasMore) {
+                loadingEl.textContent = t('noMoreData');
+                loadingEl.classList.add('no-more');
+            }
+        }
+    }
+}
+
+// Changelog'u render et
+function renderChangelog() {
+    const container = document.getElementById('changelog');
+    const dates = Object.keys(allDates).sort((a, b) => new Date(b) - new Date(a));
+
+    if (dates.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 40px;">${t('noCommits')}</p>`;
+        return;
+    }
+
+    let html = '<div class="timeline-line"></div>';
+
+    for (const date of dates) {
+        const commits = allDates[date];
+        const dateLabel = formatDate(date);
+
+        html += `
+            <div class="date-group">
+                <div class="date-header">
+                    <div class="date-dot"></div>
+                    <span class="date-label">${dateLabel}</span>
+                </div>
+                
+                <div class="commits-list">
+        `;
+
+        for (const c of commits) {
+            const color = colors[c.repo.language] || '#94a3b8';
+            const msg = escapeHtml(c.commit.message.split('\n')[0]);
+            const sha = c.sha.substring(0, 7);
+            const author = c.commit.author.name;
+            const avatar = (c.author && c.author.avatar_url) ? c.author.avatar_url : 'https://github.com/ghost.png';
+            const isPrivate = c.repo.private;
+            const repoName = c.repo.name;
+            const commitDate = new Date(c.commit.author.date);
+            const timeAgoStr = timeAgo(commitDate);
+            const repoUrl = c.repo.html_url;
+            const commitUrl = c.html_url;
+
+            html += `
+                <div class="commit-item">
+                    <div class="commit-card ${isPrivate ? 'private-repo' : ''}">
+                        <div class="card-header">
+                            <div class="commit-message">${msg}</div>
+                            <div class="commit-meta">
+                                ${isPrivate ?
+                    `<span class="private-badge"><i class="fas fa-lock"></i> ${t('privateBadge')}</span>` :
+                    `<a href="${commitUrl}" target="_blank" class="sha-badge">${sha}</a>`
+                }
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <div class="repo-info">
+                                <div class="repo-lang-dot" style="background-color: ${color}"></div>
+                                <a href="${isPrivate ? '#' : repoUrl}" target="${isPrivate ? '' : '_blank'}" 
+                                   class="repo-name" style="text-decoration:none; color:inherit;">
+                                   ${repoName}
+                                </a>
+                            </div>
+                            
+                            <div class="author-info">
+                                <img src="${avatar}" class="author-avatar" alt="${author}">
+                                <span class="time-ago">${timeAgoStr}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    // Scroll loading göstergesi
+    html += `<div id="scroll-loading" class="scroll-loading" style="display: none;"></div>`;
+
+    container.innerHTML = html;
+}
+
 document.addEventListener('DOMContentLoaded', initApp);
-setInterval(loadChangelog, 300000); // 5 dakikada bir yenile
+// 5 dakikada bir yenile - ilk sayfadan başla
+setInterval(() => {
+    currentPage = 1;
+    allDates = {};
+    hasMore = true;
+    loadChangelog();
+}, 300000);

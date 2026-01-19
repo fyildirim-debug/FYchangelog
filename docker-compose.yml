@@ -15,6 +15,8 @@ services:
       - SHOW_PRIVATE_REPOS=${SHOW_PRIVATE_REPOS:-true}
       - SHOW_API_BUTTON=${SHOW_API_BUTTON:-true}
       - DEFAULT_LANG=${DEFAULT_LANG:-TR}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - DISCORD_NOTIFICATIONS=${DISCORD_NOTIFICATIONS:-false}
     env_file:
       - .env
     healthcheck:
