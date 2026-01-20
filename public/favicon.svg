@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Arka plan gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <!-- Git branch ikonu için glow efekti -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Yuvarlak köşeli arka plan -->
+  <rect x="5" y="5" width="90" height="90" rx="20" ry="20" fill="url(#bgGradient)"/>
+  
+  <!-- Git branch sembolü -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <!-- Ana çizgi -->
+    <path d="M35 25 L35 75"/>
+    <!-- Dallanma çizgisi -->
+    <path d="M35 45 Q45 45 55 35 L65 25"/>
+    <!-- Birleşme çizgisi -->
+    <path d="M35 65 Q45 65 55 55 L65 45"/>
+  </g>
+  
+  <!-- Commit noktaları -->
+  <circle cx="35" cy="25" r="6" fill="#ffffff"/>
+  <circle cx="35" cy="45" r="5" fill="#ffffff"/>
+  <circle cx="35" cy="65" r="5" fill="#ffffff"/>
+  <circle cx="35" cy="75" r="6" fill="#ffffff"/>
+  <circle cx="65" cy="25" r="6" fill="#a5f3fc"/>
+  <circle cx="65" cy="45" r="6" fill="#fde68a"/>
+</svg>
