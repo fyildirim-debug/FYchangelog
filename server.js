@@ -27,6 +27,16 @@ const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'fyildirim-debug';
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const DISCORD_NOTIFICATIONS = process.env.DISCORD_NOTIFICATIONS === 'true';
 
+// Gizlenecek repolar (virgülle ayrılmış liste)
+const HIDDEN_REPOS = process.env.HIDDEN_REPOS
+    ? process.env.HIDDEN_REPOS.split(',').map(r => r.trim().toLowerCase()).filter(r => r)
+    : [];
+
+// Repo gizli mi kontrol et
+const isRepoHidden = (repoName) => {
+    return HIDDEN_REPOS.includes(repoName.toLowerCase());
+};
+
 // GitHub API header'ları
 const getHeaders = () => {
     const headers = {
@@ -124,7 +134,10 @@ app.get('/api/repos', async (req, res) => {
                 affiliation: 'owner' // Sadece sahip olduğu repolar
             }
         });
-        res.json(response.data);
+
+        // Gizlenecek repoları filtrele
+        const filteredRepos = response.data.filter(repo => !isRepoHidden(repo.name));
+        res.json(filteredRepos);
     } catch (error) {
         console.error('Repolar alınamadı:', error.message);
         res.status(500).json({ error: 'Repolar alınamadı' });
@@ -189,6 +202,9 @@ app.get('/api/changelog', async (req, res) => {
         if (!showPrivate) {
             repos = repos.filter(repo => !repo.private);
         }
+
+        // HIDDEN_REPOS'da belirtilen repoları filtrele
+        repos = repos.filter(repo => !isRepoHidden(repo.name));
 
         const allCommits = [];
 
@@ -290,6 +306,9 @@ app.get('/api/changelog/latest', async (req, res) => {
         if (!showPrivate) {
             repos = repos.filter(repo => !repo.private);
         }
+
+        // HIDDEN_REPOS'da belirtilen repoları filtrele
+        repos = repos.filter(repo => !isRepoHidden(repo.name));
 
         const allCommits = [];
 
@@ -397,6 +416,9 @@ app.get('/api/stats', async (req, res) => {
             repos = repos.filter(repo => !repo.private);
         }
 
+        // HIDDEN_REPOS'da belirtilen repoları filtrele
+        repos = repos.filter(repo => !isRepoHidden(repo.name));
+
         // Dil istatistikleri
         const languageStats = {};
         repos.forEach(repo => {
@@ -439,6 +461,7 @@ app.listen(PORT, () => {
 ║       Sunucu başlatıldı: http://localhost:${PORT}             ║
 ║       Kullanıcı: ${GITHUB_USERNAME.padEnd(35)}    ║
 ║       Gizli Repo: ${process.env.SHOW_PRIVATE_REPOS}                      ║
+║       Gizlenen Repo: ${HIDDEN_REPOS.length > 0 ? HIDDEN_REPOS.join(', ') : 'Yok'}${' '.repeat(Math.max(0, 30 - (HIDDEN_REPOS.length > 0 ? HIDDEN_REPOS.join(', ').length : 3)))}║
 ╚════════════════════════════════════════════════════════════╝
     `);
 });
